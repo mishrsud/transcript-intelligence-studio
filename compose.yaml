@@ -1,0 +1,12 @@
+services:
+  transcriber:
+    build: .
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - transcriber-data:/app/data
+    environment:
+      TRANSCRIBER_MODEL: tiny
+    restart: unless-stopped
+volumes:
+  transcriber-data:
