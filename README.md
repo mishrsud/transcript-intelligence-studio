@@ -77,6 +77,18 @@ docker compose up --build -d
 
 Open http://127.0.0.1:8001. SQLite, cached transcripts and model files persist in the named volume. `docker compose down` stops the app and retains that volume. This is an unauthenticated personal app; the supplied commands publish only to localhost.
 
+### Missing a newly added feature?
+
+After pulling or changing source code, rebuild the image:
+
+```sh
+docker compose up --build -d
+```
+
+`docker compose up -d` can reuse an existing image; it does not automatically rebuild it for source changes. Open **http://127.0.0.1:8001** (the Docker port), then reload the page.
+
+The **AI insights & action items** panel appears **below a completed transcript**, not on the initial empty screen. Generate a transcript first, then scroll below its text to choose a provider and enter your API key.
+
 Configuration: `TRANSCRIBER_DB` (default `data/transcripts.db`), `TRANSCRIBER_UPLOAD_DIR` (`data/uploads`), `TRANSCRIBER_MODEL` (`tiny`), `TRANSCRIBER_MODEL_DIR` (`data/models`), `TRANSCRIBER_FRONTEND` (`frontend/dist`). Local runtime data is ignored by Git. Application logs identify job IDs, outcomes and error codes.
 
 ## Design references
