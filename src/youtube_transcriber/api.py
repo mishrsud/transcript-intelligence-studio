@@ -4,10 +4,10 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request as HTTPRequest
 from uuid import uuid4
 from .audio import LocalSpeechProvider
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,7 @@ from .store import Store
 from .urls import parse_url
 from .worker import Worker
 from .limits import BodyLimit
+from .insights import InsightService, InsightRequest, InsightError
 
 
 class Request(BaseModel):
@@ -25,7 +26,7 @@ class Request(BaseModel):
     language: str = Field(default='en', pattern=r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$', max_length=35)
 
 
-def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None, upload_dir=None):
+def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None, upload_dir=None, insight_service=None):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s level=%(levelname)s logger=%(name)s %(message)s')
     @asynccontextmanager
     async def lifespan(app):
@@ -91,6 +92,17 @@ def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None,
         data['segments'] = tuple(Segment(**s) for s in data['segments'])
         transcript = Transcript(**data)
         return Response(render(transcript, format), media_type='application/json' if format == 'json' else 'text/plain', headers={'Content-Disposition': f'attachment; filename="{transcript.video_id}.{format}"'})
+
+    @app.post('/transcripts/{id}/insights')
+    def insights(id: str, request: InsightRequest, http_request: HTTPRequest):
+        job = get(id)
+        if job['status'] != 'completed':
+            raise HTTPException(409, 'Complete the transcript before generating insights', headers={'Cache-Control':'no-store'})
+        try:
+            result = (insight_service or InsightService()).generate(job['transcript'], request, http_request.headers.get('X-AI-API-Key', ''))
+            return JSONResponse(result, headers={'Cache-Control':'no-store'})
+        except InsightError as exc:
+            raise HTTPException(exc.status, detail={'code':exc.code, 'message':str(exc)}, headers={'Cache-Control':'no-store'}) from None
 
     frontend = Path(os.getenv('TRANSCRIBER_FRONTEND', 'frontend/dist'))
     if frontend.is_dir():

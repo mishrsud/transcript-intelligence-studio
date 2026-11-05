@@ -104,3 +104,26 @@ Recommendations checked against provider documentation on 5 November 2026. For t
 | Google Cloud Run | Better as a later scaling option after an architecture change | Its writable container filesystem is in-memory and nonpersistent. Move jobs/results to a durable database, audio/models to object storage, and transcription to durable background execution with suitable CPU allocation. [Runtime contract](https://docs.cloud.google.com/run/docs/container-contract) |
 
 Before exposing the app publicly, add authentication, HTTPS, per-user job access, and upload/job rate limits. The current app is designed for trusted personal use. Cloud-hosted speech processing happens on the server, not on the user's Mac. Also run the live caption smoke test from the exact hosting network before committing to a provider: the caption library documents blocking of cloud-provider IPs. [YouTube access limitations](https://github.com/jdepoix/youtube-transcript-api#working-around-ip-bans-requestblocked-or-ipblocked-exception)
+
+## AI insights and action items
+
+After generating a transcript, use the **AI insights & action items** panel below it:
+
+1. Choose **OpenAI**, **Anthropic**, **OpenRouter**, or **OpenAI-compatible**.
+2. Select a model by entering its provider-specific model ID. Defaults are supplied for the named providers; model access depends on your account.
+3. For a compatible provider, enter its public HTTPS API base URL, including the version path (for example, `https://api.example.com/v1`). The app appends `/chat/completions`. The endpoint/model must support Chat Completions and JSON mode; private/local endpoints, redirects and URL credentials are not supported.
+4. Enter that provider's API key in the password field and click **Generate insights**. Enter the key in the app, not in a chat or source file.
+
+The result includes a concise summary, key insights and explicit action items. Source timestamp buttons reveal the supporting transcript segment. Owners and dates are included only when stated; otherwise the UI says “Not stated.” Empty actions are reported explicitly. **Copy insights** copies the result with timestamps. Review the AI output against the transcript; source references do not guarantee factual accuracy.
+
+### Keys, privacy and limits
+
+The browser sends the key to the app server in an `X-AI-API-Key` header over the same connection as the UI. The server uses it only for the selected provider request. Keys are not stored in SQLite, browser storage, environment files, URLs or app logs. The form clears the key when generation starts, when changing providers and when editing the endpoint. Generated insights stay in page memory and disappear when you leave the transcript or reload. Do not enable request-header logging in a reverse proxy; use HTTPS when serving beyond localhost.
+
+Generation sends the **transcript text** to the provider displayed in the form and can incur charges on your account. Audio transcription remains local to the app server. Provider retention policies still apply; OpenAI Responses requests set `store: false`, which does not override other provider retention policies. The app does not automatically retry billable generation requests. A timeout or navigating away can leave provider-side work running, so check usage before retrying.
+
+AI input is limited to 120,000 UTF-8 bytes including segment labels. Larger transcripts are rejected before sending, never silently truncated. Provider context limits can be smaller. Provider requests use a 10-second connection timeout, a 90-second read timeout, a hard 100-second whole-operation deadline (including DNS and response reading), and a 5,000-token output cap; the UI stops waiting after two minutes. Authentication, quota/rate limits, timeouts, refusals and malformed responses have separate error messages.
+
+API: `POST /transcripts/{id}/insights`, with an `X-AI-API-Key` header and body `{ "provider": "openai", "model": "gpt-4.1-mini" }`. Custom providers use `"provider": "compatible"` and `"base_url": "https://api.example.com/v1"`. Results are returned synchronously with `Cache-Control: no-store`; they do not modify the original transcript job.
+
+Provider references: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [Anthropic tool schemas](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools), [OpenRouter API](https://openrouter.ai/docs/api_reference/overview).
