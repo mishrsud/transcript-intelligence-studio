@@ -1,0 +1,82 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install backend and test dependencies
+        run: python -m pip install '.[dev,audio]'
+      - name: Test offline (no YouTube or model downloads)
+        run: python -m pytest -q
+      - name: Build backend wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+      - name: Check installed dependencies
+        run: python -m pip check
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+
+  container:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build -t transcript-studio:ci .
+      - name: Start container
+        run: docker run --detach --name transcript-studio-ci -p 127.0.0.1:8000:8000 transcript-studio:ci
+      - name: Verify API and frontend readiness
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              curl --fail --silent http://127.0.0.1:8000/ | grep -q 'Transcript Studio'
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: Show container logs
+        if: always()
+        run: docker logs transcript-studio-ci || true
+      - name: Stop container
+        if: always()
+        run: docker rm --force transcript-studio-ci || true

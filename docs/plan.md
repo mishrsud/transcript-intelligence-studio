@@ -56,3 +56,15 @@ Use one SQLite worker thread in one application process; atomically claim queued
 Docker image builds successfully on this Mac. Compose binds localhost:8001 and persists its own database and model cache. Native run binds localhost:8000. Exactly one worker/application process per database is supported; separate instances must use separate databases. No authentication or remote hosting is included. Cache lookup expires after 24 hours; old job records are retained in SQLite. Decoder/model accuracy and YouTube availability remain external limitations.
 
 Final deployment smoke: Docker on this Mac passed manual/automatic/missing-caption cases, TXT/SRT exports and uploaded local audio transcription (12 segments with the container's decoder/model runtime). The distinctive boundary-test phrases occurred exactly once. Native and container segment grouping can differ while retaining the speech. Deployment verification is for this Mac, not another network or host.
+
+## Console design and developer workflow update (2026-11-05)
+
+User-requested scope: build/run/browser launcher under `build/`, README usage, a Google Cloud Console-inspired UI with dark default and a persistent light toggle, GitHub Actions build/test workflow, and hosting recommendations.
+
+Implementation sequence:
+1. Add `build/run.py`: resolve repo from script path, verify tools/port, install/build Python and React, start one localhost FastAPI process serving built frontend, wait for readiness, open browser, stop child on interruption. Document flags and prerequisites.
+2. Separate `App.tsx` from the entry point; add theme tests and a persistent theme helper. Use console-style top bar, navigation rail, page heading, panel borders, blue accent and theme tokens. Keep core transcript behavior.
+3. Add CI for Python tests/package build, frontend tests/production build, and Docker build/health smoke, with no live YouTube/model dependencies in automated tests.
+4. Verify launcher startup/shutdown, both theme states and persistence, existing tests, builds, and Docker preview. Document practical hosting choices and single-instance storage constraints.
+
+Update verification: 41 Python tests and 3 frontend theme tests pass. TypeScript/Vite production build and Docker rebuild pass. The launcher built the Python wheel and React assets, reached health readiness, served the app, and released its port on Ctrl+C. Tests cover default browser launch, occupied-port rejection, and immediate reuse after TCP TIME_WAIT. Browser checks passed dark default, light toggle, preference after reload, desktop/mobile layout and transcript display. The existing Docker preview at localhost:8001 was refreshed and opened. CI YAML parses and its build/test commands were exercised locally; the GitHub-hosted workflow itself awaits a push. Hosting recommendations and operational caveats are recorded in README.

@@ -8,3 +8,6 @@ __pycache__/
 data/
 node_modules/
 dist/
+# Python packaging output; keep build/run.py tracked.
+/build/lib/
+/build/bdist.*/
