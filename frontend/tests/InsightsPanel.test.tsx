@@ -7,16 +7,17 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); localS
 const result = {summary:'Test the launch.', key_insights:[{text:'Testing is needed.', segment_index:0, start:12.5}], action_items:[{action:'Send the report.', owner:'Sam', due_date:'Friday', segment_index:0, start:12.5}], provider:'openai', model:'gpt-4.1-mini'};
 
 test('sends a key only in the request header, clears it, and renders grounded results', async () => {
-  const fetch = vi.fn().mockResolvedValue({ok:true,json:async()=>result});
+  const fetch = vi.fn().mockResolvedValue({ok:true,headers:new Headers(),json:async()=>result});
   vi.stubGlobal('fetch',fetch);
   const source = vi.fn();
-  render(<InsightsPanel jobId="job-one" onSource={source}/>);
+  render(<InsightsPanel csrfToken="test-csrf" jobId="job-one" onSource={source}/>);
   fireEvent.change(screen.getByLabelText('API key'),{target:{value:'private-test-key'}});
   fireEvent.click(screen.getByRole('button',{name:'Generate insights'}));
   await screen.findByText('Send the report.');
   expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('');
   const [url,options] = fetch.mock.calls[0];
   expect(url).toBe('/transcripts/job-one/insights');
+  expect(options.headers['X-CSRF-Token']).toBe('test-csrf');
   expect(options.headers['X-AI-API-Key']).toBe('private-test-key');
   expect(options.body).not.toContain('private-test-key');
   expect(JSON.stringify(localStorage)).not.toContain('private-test-key');
@@ -35,7 +36,7 @@ test('changing destination clears a previously entered key', () => {
 });
 
 test('shows provider errors without retaining the key', async () => {
-  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,json:async()=>({detail:{message:'The provider rejected the API key.'}})}));
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,headers:new Headers(),json:async()=>({detail:{message:'The provider rejected the API key.'}})}));
   render(<InsightsPanel jobId="one" onSource={()=>{}}/>);
   fireEvent.change(screen.getByLabelText('API key'),{target:{value:'invalid-test-key'}});
   fireEvent.click(screen.getByRole('button',{name:'Generate insights'}));
@@ -45,7 +46,7 @@ test('shows provider errors without retaining the key', async () => {
 });
 
 test('empty actions have an explicit empty state', async () => {
-  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({...result,action_items:[]})}));
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,headers:new Headers(),json:async()=>({...result,action_items:[]})}));
   render(<InsightsPanel jobId="one" onSource={()=>{}}/>);
   fireEvent.change(screen.getByLabelText('API key'),{target:{value:'test-key'}});
   fireEvent.click(screen.getByRole('button',{name:'Generate insights'}));

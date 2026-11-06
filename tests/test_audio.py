@@ -1,8 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 import pytest
-from fastapi.testclient import TestClient
-from youtube_transcriber.api import create_app
+from auth_helpers import TestClient, create_app
 from youtube_transcriber.models import Transcript, Segment
 from youtube_transcriber.audio import LocalSpeechProvider, normalize_segments
 from test_api import wait

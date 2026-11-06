@@ -11,6 +11,12 @@ from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
+from .auth import AuthSettings, KindeAuth, install_routes
+from .sessions import AuthBoundary
+
+load_dotenv()
+
 from .exports import render
 from .models import Segment, Transcript, TranscriptError
 from .provider import YouTubeCaptionProvider
@@ -26,7 +32,7 @@ class Request(BaseModel):
     language: str = Field(default='en', pattern=r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$', max_length=35)
 
 
-def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None, upload_dir=None, insight_service=None):
+def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None, upload_dir=None, insight_service=None, auth=None):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s level=%(levelname)s logger=%(name)s %(message)s')
     @asynccontextmanager
     async def lifespan(app):
@@ -38,22 +44,25 @@ def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None,
 
     app = FastAPI(title='YouTube Transcriber', lifespan=lifespan)
     app.add_middleware(BodyLimit)
+    auth = auth or KindeAuth(AuthSettings.from_env())
+    install_routes(app, auth)
+    app.add_middleware(AuthBoundary, auth=auth)
 
     @app.get('/health')
     def health():
         return {'status': 'ok'}
 
     @app.post('/transcripts', status_code=202)
-    def submit(request: Request):
+    def submit(request: Request, http_request: HTTPRequest):
         try:
             video_id = parse_url(request.url)
         except TranscriptError as exc:
             raise HTTPException(422, detail={'code': exc.code, 'message': str(exc)}) from exc
-        id = app.state.store.create(video_id, request.language.lower())
+        id = app.state.store.create(video_id, request.language.lower(), owner_id=http_request.state.user['id'])
         return {'id': id}
 
     @app.post('/uploads', status_code=202)
-    async def upload(file: UploadFile = File(...), language: str = Form('en', pattern=r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$', max_length=35)):
+    async def upload(http_request: HTTPRequest, file: UploadFile = File(...), language: str = Form('en', pattern=r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$', max_length=35)):
         directory = Path(upload_dir or os.getenv('TRANSCRIBER_UPLOAD_DIR', 'data/uploads'))
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / uuid4().hex
@@ -67,7 +76,7 @@ def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None,
                     output.write(chunk)
             if size == 0:
                 raise HTTPException(422, 'The uploaded file is empty')
-            id = app.state.store.create_audio(path, language.lower())
+            id = app.state.store.create_audio(path, language.lower(), owner_id=http_request.state.user['id'])
             return {'id': id}
         except BaseException:
             path.unlink(missing_ok=True)
@@ -76,16 +85,17 @@ def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None,
             await file.close()
 
     @app.get('/transcripts/{id}')
-    def get(id: str):
-        job = app.state.store.get(id)
+    def get(id: str, http_request: HTTPRequest):
+        job = app.state.store.get_owned(id, http_request.state.user['id'])
         if job is None:
             raise HTTPException(404, 'Transcript job not found')
         job.pop('input_path', None)
+        job.pop('owner_id', None)
         return job
 
     @app.get('/transcripts/{id}/export')
-    def export(id: str, format: Literal['txt', 'srt', 'json'] = 'txt'):
-        job = get(id)
+    def export(id: str, http_request: HTTPRequest, format: Literal['txt', 'srt', 'json'] = 'txt'):
+        job = get(id, http_request)
         if job['status'] != 'completed':
             raise HTTPException(409, 'Transcript is not ready')
         data = job['transcript'].copy()
@@ -95,7 +105,7 @@ def create_app(db_path=None, provider=None, retry_delay=1, speech_provider=None,
 
     @app.post('/transcripts/{id}/insights')
     def insights(id: str, request: InsightRequest, http_request: HTTPRequest):
-        job = get(id)
+        job = get(id, http_request)
         if job['status'] != 'completed':
             raise HTTPException(409, 'Complete the transcript before generating insights', headers={'Cache-Control':'no-store'})
         try:

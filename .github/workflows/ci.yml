@@ -71,6 +71,8 @@ jobs:
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8000/health; then
               curl --fail --silent http://127.0.0.1:8000/ | grep -q 'Transcript Studio'
+              curl --fail --silent http://127.0.0.1:8000/auth/session | python -c 'import json,sys; s=json.load(sys.stdin); assert s["configured"] is False and s["user"] is None'
+              test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8000/transcripts/unknown)" = 503
               exit 0
             fi
             sleep 1

@@ -150,3 +150,5 @@ time { color: var(--accent); min-width: 48px; font-size: 12px; padding-top: 2px;
 .source-link:hover { background: var(--hover); }
 .action-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 11px; line-height: 1.7; margin-bottom: 8px; overflow-wrap: anywhere; }
 @media (max-width:760px) { .ai-settings, .insights-columns { grid-template-columns: 1fr; } .ai-key-row { flex-direction: column; align-items: stretch; } .insights-output { padding: 20px; } .insights-result-heading { flex-wrap: wrap; margin-bottom: 20px; } }
+
+.auth-main{max-width:760px;margin:10vh auto;padding:24px}.auth-card{padding:40px}.auth-card h1{font-size:clamp(28px,4vw,42px);margin:18px 0}.auth-card>p{line-height:1.7}.sign-in{display:inline-block;background:var(--accent,#8ab4f8);color:#10233f;padding:12px 20px;border-radius:6px;font-weight:600;margin:20px 0;text-decoration:none}.auth-shell .app-bar{justify-content:space-between}

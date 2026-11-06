@@ -66,7 +66,7 @@ def main(argv=None):
     run(['npm', 'run', 'build', '--prefix', 'frontend'])
     url = f'http://127.0.0.1:{args.port}'
     # Frontend assets and API share one origin and one server process.
-    process = subprocess.Popen([str(python), '-m', 'uvicorn', 'youtube_transcriber.api:app', '--host', '127.0.0.1', '--port', str(args.port), '--workers', '1'], cwd=ROOT)
+    process = subprocess.Popen([str(python), '-m', 'uvicorn', 'youtube_transcriber.api:app', '--host', '127.0.0.1', '--port', str(args.port), '--workers', '1', '--no-access-log'], cwd=ROOT)
     old_term = signal.signal(signal.SIGTERM, interrupt)
     try:
         deadline = time.monotonic() + 30

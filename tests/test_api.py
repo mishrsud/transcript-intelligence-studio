@@ -1,7 +1,6 @@
 import time
 from types import SimpleNamespace
-from fastapi.testclient import TestClient
-from youtube_transcriber.api import create_app
+from auth_helpers import TestClient, create_app
 from youtube_transcriber.models import Transcript, Segment, TranscriptError
 
 

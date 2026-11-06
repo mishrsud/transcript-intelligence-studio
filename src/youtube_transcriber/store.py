@@ -19,6 +19,9 @@ class Store:
             if 'kind' not in columns:
                 db.execute("ALTER TABLE jobs ADD COLUMN kind TEXT NOT NULL DEFAULT 'caption'")
                 db.execute('ALTER TABLE jobs ADD COLUMN input_path TEXT')
+            if 'owner_id' not in columns:
+                db.execute('ALTER TABLE jobs ADD COLUMN owner_id TEXT')
+            db.execute('CREATE INDEX IF NOT EXISTS job_owner_lookup ON jobs(owner_id, video_id, language, status)')
             db.execute('CREATE INDEX IF NOT EXISTS job_lookup ON jobs(video_id, language, status)')
 
     @contextmanager
@@ -38,15 +41,15 @@ class Store:
         for row in terminal:
             Path(row['input_path']).unlink(missing_ok=True)
 
-    def create(self, video_id, language):
+    def create(self, video_id, language, owner_id=None):
         now = time.time()
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = db.execute("SELECT id FROM jobs WHERE video_id=? AND language=? AND (status IN ('queued','processing') OR (status='completed' AND updated>?)) ORDER BY created DESC LIMIT 1", (video_id, language, now - 86400)).fetchone()
+            row = db.execute("SELECT id FROM jobs WHERE owner_id IS ? AND video_id=? AND language=? AND (status IN ('queued','processing') OR (status='completed' AND updated>?)) ORDER BY created DESC LIMIT 1", (owner_id, video_id, language, now - 86400)).fetchone()
             if row:
                 return row['id']
             id = uuid4().hex
-            db.execute('INSERT INTO jobs (id, video_id, language, status, created, updated, transcript, error) VALUES (?,?,?,?,?,?,NULL,NULL)', (id, video_id, language, 'queued', now, now))
+            db.execute('INSERT INTO jobs (id, video_id, language, status, created, updated, owner_id, transcript, error) VALUES (?,?,?,?,?,?,?,NULL,NULL)', (id, video_id, language, 'queued', now, now, owner_id))
             return id
 
     def get(self, id):
@@ -58,6 +61,10 @@ class Store:
         for field in ('transcript', 'error'):
             result[field] = json.loads(result[field]) if result[field] else None
         return result
+
+    def get_owned(self, id, owner_id):
+        job = self.get(id)
+        return job if owner_id and job and job['owner_id'] == owner_id else None
 
     def claim(self):
         with self.connect() as db:
@@ -72,9 +79,9 @@ class Store:
         with self.connect() as db:
             db.execute('UPDATE jobs SET status=?, updated=?, transcript=?, error=? WHERE id=?', ('failed' if error else 'completed', time.time(), json.dumps(transcript) if transcript else None, json.dumps(error) if error else None, id))
 
-    def create_audio(self, path, language):
+    def create_audio(self, path, language, owner_id=None):
         id = uuid4().hex
         now = time.time()
         with self.connect() as db:
-            db.execute("INSERT INTO jobs (id,video_id,language,status,created,updated,kind,input_path) VALUES (?,?,?,'queued',?,?,'audio',?)", (id, 'audio', language, now, now, str(path)))
+            db.execute("INSERT INTO jobs (id,video_id,language,status,created,updated,kind,input_path,owner_id) VALUES (?,?,?,'queued',?,?,'audio',?,?)", (id, 'audio', language, now, now, str(path), owner_id))
         return id
