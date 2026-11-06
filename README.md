@@ -12,7 +12,7 @@ From the repository root:
 python3 build/run.py
 ```
 
-The script creates `.venv` if needed, builds and installs the Python backend with local audio support, installs the locked frontend dependencies, builds the React frontend, and starts the app at **http://127.0.0.1:8000**. After the health check succeeds, it opens your default browser. FastAPI serves both the built frontend and API, so only one server process is needed. Keep the terminal open; **Ctrl+C** stops the app and its child process. Dependencies require internet on first installation.
+First complete **Kinde authentication setup** below. The script creates `.venv` if needed, builds and installs the Python backend with local audio support, installs the locked frontend dependencies, builds the React frontend, and starts the app at **http://127.0.0.1:8000**. After the health check succeeds, it opens your default browser. FastAPI serves both the built frontend and API, so only one server process is needed. Keep the terminal open; **Ctrl+C** stops the app and its child process. Dependencies require internet on first installation.
 
 Options:
 
@@ -32,7 +32,7 @@ The UI uses a Google Cloud Console-inspired layout with **dark mode by default**
 python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[dev,audio]'
 npm ci --prefix frontend
-.venv/bin/uvicorn youtube_transcriber.api:app --host 127.0.0.1 --port 8000
+.venv/bin/uvicorn youtube_transcriber.api:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 In another terminal, run `npm run dev --prefix frontend` for the Vite development server with hot reload and API proxying. Alternatively, `npm run build --prefix frontend` creates production assets for the backend to serve. After using the launcher, reinstall with `pip install -e '.[dev,audio]'` before editing Python source for live development: the launcher installs a built package, not an editable checkout.
@@ -75,7 +75,7 @@ The live smoke test needs the running app and internet access. YouTube behavior 
 docker compose up --build -d
 ```
 
-Open http://127.0.0.1:8001. SQLite, cached transcripts and model files persist in the named volume. `docker compose down` stops the app and retains that volume. This is an unauthenticated personal app; the supplied commands publish only to localhost.
+Open http://127.0.0.1:8001. SQLite, cached transcripts and model files persist in the named volume. `docker compose down` stops the app and retains that volume. Kinde sign-in is required; any authenticated user can create transcripts and AI insights, with each user's data kept private. The supplied commands publish only to localhost. Complete the Kinde setup below before signing in.
 
 ### Missing a newly added feature?
 
@@ -115,7 +115,7 @@ Recommendations checked against provider documentation on 5 November 2026. For t
 | Fly.io Machine + volume | Good fit for the existing Docker image and SQLite | Mount a volume at `/app/data`, keep the worker's machine running, and configure backups; volumes attach to a single machine and are not automatically replicated. [Volume documentation](https://docs.fly.io/volumes/overview) |
 | Google Cloud Run | Better as a later scaling option after an architecture change | Its writable container filesystem is in-memory and nonpersistent. Move jobs/results to a durable database, audio/models to object storage, and transcription to durable background execution with suitable CPU allocation. [Runtime contract](https://docs.cloud.google.com/run/docs/container-contract) |
 
-Before exposing the app publicly, add authentication, HTTPS, per-user job access, and upload/job rate limits. The current app is designed for trusted personal use. Cloud-hosted speech processing happens on the server, not on the user's Mac. Also run the live caption smoke test from the exact hosting network before committing to a provider: the caption library documents blocking of cloud-provider IPs. [YouTube access limitations](https://github.com/jdepoix/youtube-transcript-api#working-around-ip-bans-requestblocked-or-ipblocked-exception)
+Kinde authentication and per-user job access are implemented. Before public hosting, configure an HTTPS APP_URL and Kinde callback, and add upload/job rate limits. The single-process app is intended for a small trusted user group. Cloud-hosted speech processing happens on the server, not on the user's Mac. Also run the live caption smoke test from the exact hosting network before committing to a provider: the caption library documents blocking of cloud-provider IPs. [YouTube access limitations](https://github.com/jdepoix/youtube-transcript-api#working-around-ip-bans-requestblocked-or-ipblocked-exception)
 
 ## AI insights and action items
 
@@ -139,3 +139,43 @@ AI input is limited to 120,000 UTF-8 bytes including segment labels. Larger tran
 API: `POST /transcripts/{id}/insights`, with an `X-AI-API-Key` header and body `{ "provider": "openai", "model": "gpt-4.1-mini" }`. Custom providers use `"provider": "compatible"` and `"base_url": "https://api.example.com/v1"`. Results are returned synchronously with `Cache-Control: no-store`; they do not modify the original transcript job.
 
 Provider references: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [Anthropic tool schemas](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools), [OpenRouter API](https://openrouter.ai/docs/api_reference/overview).
+
+
+## Kinde authentication setup
+
+The integration adapts the [Kinde Python starter kit](https://github.com/kinde-starter-kits/python-starter-kit) to this app's FastAPI/React stack. The starter uses Flask and the Kinde SDK; this app uses Authlib for Kinde's standard OIDC authorization-code flow with PKCE, plus PyJWT for access-token verification. It follows [Kinde's documented OIDC integration](https://docs.kinde.com/developer-tools/about/using-kinde-without-an-sdk/). No Kinde Management API key is needed.
+
+1. Copy the configuration template without overwriting an existing file:
+
+   ```bash
+   cp -n .env.example .env
+   chmod 600 .env
+   ```
+
+   Edit `.env` locally and fill in `KINDE_CLIENT_SECRET` from your Kinde application's keys. Your domain and client ID are already in the template. Keep the secret out of chat, Git and all `VITE_` variables. The backend loads `.env` from the working directory; the launcher uses the repository directory. Compose passes only the declared auth variables into the container.
+
+2. In Kinde, use a **Back-end web** application for client ID `be8486f517de44d88712a1f5fa8ce694`, with authorization-code flow and client-secret authentication. If that ID belongs to an SPA application, create a Back-end web application and update the ID and secret in `.env`.
+
+3. Add the exact URLs for each way you run the app:
+
+   | Run mode | Allowed callback URL | Allowed logout redirect URL |
+   | --- | --- | --- |
+   | Native launcher | `http://127.0.0.1:8000/auth/callback` | `http://127.0.0.1:8000/` |
+   | Docker Compose | `http://127.0.0.1:8001/auth/callback` | `http://127.0.0.1:8001/` |
+   | Vite development | `http://127.0.0.1:5173/auth/callback` | `http://127.0.0.1:5173/` |
+
+   Use `127.0.0.1` consistently; `localhost` is a different origin. For Vite, set `APP_URL=http://127.0.0.1:5173` before starting the backend. Vite proxies `/auth` and the API. For a custom launcher port, change `APP_URL` and register its callback/logout URLs. Docker uses `DOCKER_APP_URL`, which defaults to port 8001. For remote hosting set `APP_URL` to the public HTTPS origin (no path), and register its `/auth/callback` and `/` URLs.
+
+4. In Kinde, [register an API](https://docs.kinde.com/developer-tools/your-apis/register-manage-apis/) with identifier **`youtube-transcriber`**, authorize this web application to use it, and keep `KINDE_AUDIENCE` set to the same identifier. The backend verifies that exact audience. The API audience is required; this app does not require custom OAuth scopes, Kinde roles, or permission claims.
+
+5. For invite-only access on the free plan, use admin-managed accounts. In Kinde, open **Settings > Environment > Policies** and turn off **Allow self sign-up**. Then open **Users > Add user**, enter the person's name and email, select the organization, and save. Manually added users do not automatically receive an invitation email; send the app URL to each approved person yourself. This is admin pre-provisioning and a personal app link, not a native pending-invitation flow. See Kinde's guides for [adding users](https://docs.kinde.com/manage-users/add-and-edit/add-and-edit-users/), [invitation flows](https://docs.kinde.com/manage-users/add-and-edit/send-invitations-webhook/) and [suspending users](https://docs.kinde.com/manage-users/access-control/delete-or-suspend-users/). Existing accounts are not removed when self sign-up is disabled; review the user list and suspend any unapproved accounts. Keep Google sign-in enabled if you use it, then test with one approved email and one new, unapproved email.
+
+6. Run `python3 build/run.py`, or refresh Docker with `docker compose up --build -d`, then select **Sign in with Kinde**. If setup is incomplete, the app displays a setup message and protected API calls fail closed. `/health` stays public so container health checks work. `/docs` describes the API publicly; data endpoints still require the session cookie, and mutations require the `X-CSRF-Token` from `/auth/session`.
+
+Sessions use opaque HttpOnly, SameSite=Lax cookies, with Secure enabled for HTTPS. Verified identity stays in process memory; OAuth tokens are discarded after verification. Sessions expire at the earlier of token expiry or one hour. Restarting the app signs everyone out. Logout invalidates the local session and redirects to Kinde. Run exactly one application process; a multi-instance deployment needs shared sessions and a separate worker architecture. Suspending an account in Kinde prevents future sign-ins; this implementation does not consume Kinde logout/revocation webhooks, so an existing session remains active until logout, restart, or expiry.
+
+Each job and cache entry belongs to its creator's verified Kinde subject. Cross-user reads, exports and AI calls return 404. **Pre-authentication transcripts remain in SQLite with no owner and cannot be accessed through the app.** Regenerate them after signing in; the migration does not assign private old data to the first user.
+
+The launcher and container disable HTTP access logs to avoid recording OAuth callback codes. If running your own server/proxy, omit query strings and sensitive headers from logs. Keep the existing localhost binding unless intentionally deploying with HTTPS.
+
+Validation includes offline signed-token OAuth tests, empty-permissions feature access, CSRF checks and ownership isolation. A successful live login additionally requires the client secret and dashboard setup above.

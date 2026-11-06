@@ -3,9 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from fastapi.testclient import TestClient
+from auth_helpers import TestClient, create_app
 
-from youtube_transcriber.api import create_app
 from youtube_transcriber.store import Store
 from youtube_transcriber.insights import InsightService, InsightError, InsightRequest
 from youtube_transcriber.ai_transport import public_destination
@@ -84,7 +83,7 @@ def test_private_addresses_blocked(monkeypatch):
 def test_api_key_not_saved_or_returned(tmp_path, caplog):
     service = InsightService(post=Mock(return_value=(200,response('openai'))))
     store = Store(tmp_path/'db')
-    id = store.create('dQw4w9WgXcQ','en')
+    id = store.create('dQw4w9WgXcQ','en', owner_id='test-user')
     store.finish(id, transcript=TRANSCRIPT)
     app = create_app(tmp_path/'db', insight_service=service)
     with TestClient(app) as client:

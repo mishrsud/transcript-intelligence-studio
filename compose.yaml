@@ -7,6 +7,11 @@ services:
       - transcriber-data:/app/data
     environment:
       TRANSCRIBER_MODEL: tiny
+      KINDE_DOMAIN: ${KINDE_DOMAIN:-}
+      KINDE_CLIENT_ID: ${KINDE_CLIENT_ID:-}
+      KINDE_CLIENT_SECRET: ${KINDE_CLIENT_SECRET:-}
+      KINDE_AUDIENCE: ${KINDE_AUDIENCE:-youtube-transcriber}
+      APP_URL: ${DOCKER_APP_URL:-http://127.0.0.1:8001}
     restart: unless-stopped
 volumes:
   transcriber-data:

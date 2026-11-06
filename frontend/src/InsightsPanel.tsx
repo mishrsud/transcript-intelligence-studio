@@ -1,3 +1,4 @@
+import { sessionFetch } from './session';
 import React, { useEffect, useRef, useState } from 'react';
 
 type Provider = 'openai' | 'anthropic' | 'openrouter' | 'compatible';
@@ -17,7 +18,7 @@ const providers: Record<Provider, {name: string; model: string; destination: str
 };
 const time = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2,'0')}:${Math.floor(seconds % 60).toString().padStart(2,'0')}`;
 
-export default function InsightsPanel({jobId, onSource}: {jobId: string; onSource: (index: number) => void}) {
+export default function InsightsPanel({jobId, onSource, csrfToken = ''}: {csrfToken?: string; jobId: string; onSource: (index: number) => void}) {
   const [provider, setProvider] = useState<Provider>('openai');
   const [model, setModel] = useState(providers.openai.model);
   const [baseUrl, setBaseUrl] = useState('');
@@ -46,8 +47,8 @@ export default function InsightsPanel({jobId, onSource}: {jobId: string; onSourc
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; abort.abort(); }, 120000);
     try {
-      const response = await fetch(`/transcripts/${encodeURIComponent(jobId)}/insights`, {
-        method:'POST', headers:{'Content-Type':'application/json', 'X-AI-API-Key':key},
+      const response = await sessionFetch(`/transcripts/${encodeURIComponent(jobId)}/insights`, {
+        method:'POST', headers:{'Content-Type':'application/json', 'X-AI-API-Key':key, 'X-CSRF-Token':csrfToken},
         body:JSON.stringify({provider,model:model.trim(), ...(provider === 'compatible' ? {base_url:baseUrl.trim()} : {})}), signal:abort.signal,
       });
       const data = await response.json();
