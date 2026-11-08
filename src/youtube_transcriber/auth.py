@@ -91,7 +91,13 @@ class KindeAuth:
         if (not user or not client_audience_valid or user.get('iss') != self.settings.domain
                 or not user.get('sub') or user['sub'] != claims['sub']):
             raise ValueError('Token identity mismatch')
-        return {'id':user['sub'], 'name':user.get('name') or user.get('given_name') or 'Signed in'}, min(float(claims['exp']), float(user['exp']), time.time()+3600)
+        email = user.get('email')
+        if not isinstance(email, str) or len(email) > 254 or any(ord(char) < 32 for char in email):
+            email = None
+        identity = {'id':user['sub'], 'name':user.get('name') or user.get('given_name') or 'Signed in'}
+        if email:
+            identity['email'] = email
+        return identity, min(float(claims['exp']), float(user['exp']), time.time()+3600)
 
 
 def install_routes(app, auth):
