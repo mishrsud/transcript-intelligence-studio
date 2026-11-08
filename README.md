@@ -1,6 +1,8 @@
-# Transcript Studio
+# Intelligence Studio
 
-A personal-use, caption-first YouTube transcriber for your Mac. Paste a watch, Shorts, or youtu.be URL, select a caption language, then read, copy, or download TXT/SRT. Manual captions take priority over automatic captions. If captions are unavailable, upload audio/video for local speech recognition.
+![Intelligence Studio logo](frontend/public/brand/logo-mark.png)
+
+A personal-use, caption-first YouTube transcriber for your Mac. Paste a watch, Shorts, or youtu.be URL, select a caption language, then read, copy, or download TXT/SRT. Manual captions take priority over automatic captions. If captions are unavailable, upload audio/video for local speech recognition. Intelligence Studio also provides account sign-in, optional transcript insights, and the ability to email transcript text and generated insights. Generated insights remain in page memory and are not persisted.
 
 ## Build and launch locally
 
@@ -88,6 +90,18 @@ docker compose up --build -d
 `docker compose up -d` can reuse an existing image; it does not automatically rebuild it for source changes. Open **http://127.0.0.1:8001** (the Docker port), then reload the page.
 
 The **AI insights & action items** panel appears **below a completed transcript**, not on the initial empty screen. Generate a transcript first, then scroll below its text to choose a provider and enter your API key.
+
+### Emailing transcripts and insights (SMTP)
+
+To enable email delivery from the app, configure the SMTP settings in `.env` before starting the app or rebuilding its Docker container. `SMTP_HOST` and `SMTP_FROM_ADDRESS` are required. `SMTP_PORT` defaults to `587`; `SMTP_SECURITY` defaults to `starttls` and accepts `starttls` or `ssl`. `SMTP_USERNAME` and `SMTP_PASSWORD` are optional for relays that do not require authentication. STARTTLS is mandatory in `starttls` mode; SSL mode uses an implicit TLS connection. Connections time out after 15 seconds and are not retried. Keep relay credentials private and never put them in `VITE_` variables.
+
+For Docker, Compose forwards these settings from the repository `.env`. Rebuild and restart after changing configuration:
+
+```sh
+docker compose up --build -d
+```
+
+Use a provider-issued app password or SMTP credential when required. The email feature sends transcript text as a plain-text attachment and can include generated insights in the message body. Insight output is request-scoped and is not stored in the app database. SMTP acceptance confirms relay handoff only; it does not confirm delivery to the recipient.
 
 Configuration: `TRANSCRIBER_DB` (default `data/transcripts.db`), `TRANSCRIBER_UPLOAD_DIR` (`data/uploads`), `TRANSCRIBER_MODEL` (`tiny`), `TRANSCRIBER_MODEL_DIR` (`data/models`), `TRANSCRIBER_FRONTEND` (`frontend/dist`). Local runtime data is ignored by Git. Application logs identify job IDs, outcomes and error codes.
 

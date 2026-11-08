@@ -87,7 +87,7 @@ form { padding: 24px; }
 label { display: flex; flex-direction: column; gap: 9px; font-size: 12px; font-weight: 500; }
 .url-field { flex: 1; min-width: 0; }
 .fields > label:not(.url-field) { width: 135px; }
-input:not([type='checkbox']), select { width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 4px; padding: 11px 12px; color: var(--text); background: var(--field); font-size: 13px; }
+input:not([type='checkbox']):not([type='radio']), select { width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 4px; padding: 11px 12px; color: var(--text); background: var(--field); font-size: 13px; }
 input::placeholder { color: var(--muted); opacity: .85; }
 input[type='file'] { padding: 7px; }
 input::file-selector-button { background: var(--selected); color: var(--accent); border: 0; border-radius: 3px; padding: 6px 10px; margin-right: 8px; }
@@ -152,3 +152,96 @@ time { color: var(--accent); min-width: 48px; font-size: 12px; padding-top: 2px;
 @media (max-width:760px) { .ai-settings, .insights-columns { grid-template-columns: 1fr; } .ai-key-row { flex-direction: column; align-items: stretch; } .insights-output { padding: 20px; } .insights-result-heading { flex-wrap: wrap; margin-bottom: 20px; } }
 
 .auth-main{max-width:760px;margin:10vh auto;padding:24px}.auth-card{padding:40px}.auth-card h1{font-size:clamp(28px,4vw,42px);margin:18px 0}.auth-card>p{line-height:1.7}.sign-in{display:inline-block;background:var(--accent,#8ab4f8);color:#10233f;padding:12px 20px;border-radius:6px;font-weight:600;margin:20px 0;text-decoration:none}.auth-shell .app-bar{justify-content:space-between}
+
+/* Intelligence Studio: spacious editorial surfaces, adapted for both themes. */
+:root {
+  font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --canvas: #171719; --surface: #202023; --surface-raised: #29292d; --field: #202023;
+  --text: #f5f5f7; --muted: #b0b0b5; --border: #414146; --accent: #83b8f5;
+  --accent-fill: #0071e3; --on-accent: #fff; --selected: #293a4f; --hover: #303035;
+  --success: #81c995; --error-bg: #452526; --error-text: #ffb4ab;
+  background:var(--canvas); color:var(--text);
+}
+:root[data-theme='light'] {
+  --canvas:#f5f5f7; --surface:#fff; --surface-raised:#fafafc; --field:#fff;
+  --text:#1d1d1f; --muted:#707070; --border:#d6d6d6; --accent:#0066cc;
+  --accent-fill:#0071e3; --on-accent:#fff; --selected:#e8e8eb; --hover:#f0f0f2;
+  --success:#287447; --error-bg:#fce8e6; --error-text:#b3261e;
+}
+body { font-size:14px; letter-spacing:-.2px; }
+.app-bar { height:68px; padding:0 32px; gap:20px; background:var(--surface); border-bottom-color:var(--border); }
+.brand { font-size:19px; font-weight:600; letter-spacing:-.35px; gap:11px; }
+.brand-logo { width:30px; height:30px; object-fit:contain; }
+.workspace-badge,.page-badge { border:0; border-radius:9999px; background:var(--surface-raised); padding:8px 13px; font-size:12px; }
+.header-actions { gap:16px; }
+.header-actions > button:not(.theme-button), .theme-button { border:0; border-radius:9999px; padding:9px 14px; background:transparent; color:var(--text); }
+.theme-button:hover,.header-actions > button:hover { background:var(--hover); }
+.workspace-layout { grid-template-columns:220px minmax(0,1fr); min-height:calc(100vh - 68px); }
+.sidebar { padding:32px 14px; background:var(--canvas); border-right:0; }
+.nav-label { font-size:11px; letter-spacing:.5px; margin-bottom:8px; }
+.nav-item { border-radius:10px; font-size:14px; padding:12px 14px; }
+.nav-item.active { background:var(--surface); color:var(--accent); }
+.sidebar-note { border-top:1px solid var(--border); padding-top:24px; font-size:12px; }
+main { max-width:1280px; padding:32px 48px 0; }
+.breadcrumb { font-size:13px; }
+.intro { margin:34px 0 36px; }
+h1 { font-family:'SF Pro Display',ui-sans-serif,system-ui,sans-serif; font-size:42px; font-weight:600; letter-spacing:-1px; }
+.intro p { font-size:17px; line-height:1.47; letter-spacing:-.374px; }
+h2 { font-family:'SF Pro Display',ui-sans-serif,system-ui,sans-serif; font-size:22px; font-weight:600; letter-spacing:-.3px; }
+.input-panel,.result,.empty,.insights-panel { background:var(--surface); border:1px solid var(--border); border-radius:20px; }
+.panel-heading { padding:28px 28px 0; }
+.panel-heading p { font-size:14px; }
+.tabs { margin-top:24px; padding:0 24px; }
+.tabs button { font-size:14px; padding:16px 14px; }
+form { padding:28px; }
+label { gap:10px; font-size:13px; }
+input:not([type='checkbox']):not([type='radio']),select { height:48px; border-radius:10px; padding:12px 16px; font-size:14px; }
+.primary { height:48px; border-radius:9999px; padding:0 22px; font-size:14px; font-weight:500; }
+.hint,.ai-disclosure { font-size:13px; line-height:1.6; }
+.result,.empty { margin-top:28px; padding:28px; }
+.result-top p,.insights-result-heading p { font-size:13px; }
+.actions button,.actions a { border:1px solid var(--border); border-radius:9999px; padding:10px 15px; font-size:13px; }
+.toggle { font-size:13px; }
+article { font-size:16px; line-height:1.7; }
+.insights-panel { margin-top:28px; }
+.insights-heading { padding:28px 28px 0; }
+.insights-heading .eyebrow { margin-bottom:14px; }
+.insights-panel form { padding-top:24px; }
+.source-link { border-radius:9999px; }
+.empty { padding:56px 28px; }
+footer { border-top:1px solid var(--border); margin-top:56px; padding:28px 0; font-size:12px; }
+.auth-main { margin:8vh auto; }
+.auth-card { padding:48px; }
+.auth-card h1 { max-width:560px; line-height:1.05; }
+.sign-in { border-radius:9999px; background:var(--accent-fill); color:white; padding:14px 22px; }
+.auth-footer { max-width:760px; margin:auto; padding:20px 24px; color:var(--muted); font-size:12px; }
+
+.email-dialog { width:min(560px,calc(100% - 32px)); max-height:min(88vh,760px); padding:0; border:1px solid var(--border); border-radius:28px; color:var(--text); background:var(--surface); }
+.email-dialog::backdrop { background:rgba(0,0,0,.55); }
+.email-dialog-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:28px 28px 0; }
+.email-dialog-head .eyebrow { color:var(--accent); }
+.email-dialog-head p { color:var(--muted); margin:9px 0 0; line-height:1.5; }
+.dialog-close { width:36px; height:36px; border:0; border-radius:50%; background:var(--surface-raised); color:var(--text); font-size:24px; line-height:1; }
+.email-dialog form { padding:24px 28px 28px; }
+.email-content { margin:24px 0; padding:18px; border:1px solid var(--border); border-radius:16px; }
+.email-content legend { padding:0 7px; font-size:13px; font-weight:600; }
+.email-content label { display:flex; flex-direction:row; align-items:center; flex-wrap:wrap; gap:10px; padding:10px 0; font-size:14px; font-weight:400; }
+.email-content input[type=radio] { flex:0 0 18px; width:18px; height:18px; padding:0; border:0; margin:0; accent-color:var(--accent-fill); }
+.email-content .field-help { flex-basis:100%; margin-left:25px; font-size:12px; }
+.email-includes { padding:16px 18px; border-radius:16px; background:var(--surface-raised); font-size:13px; line-height:1.6; }
+.email-includes ul { margin:9px 0 0; padding-left:20px; color:var(--muted); }
+.email-includes a { color:var(--accent); }
+.email-dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:22px; }
+.secondary-button { min-height:44px; padding:0 18px; border:1px solid var(--border); border-radius:9999px; background:transparent; color:var(--text); }
+.email-feedback,.email-success { margin:18px 0 0; padding:13px 15px; border-radius:12px; font-size:13px; line-height:1.5; }
+.email-feedback { background:var(--error-bg); color:var(--error-text); }
+.email-success { background:var(--selected); color:var(--text); }
+@media(max-width:1100px) { main { padding:28px 28px 0; } }
+@media(max-width:760px) {
+ .app-bar { padding:0 16px; } .brand { font-size:16px; } .brand-logo { width:25px; height:25px; }
+ main { padding:24px 16px 0; } .intro { align-items:flex-start; } h1 { font-size:34px; }
+ form,.result,.panel-heading,.insights-heading { padding-left:20px; padding-right:20px; }
+ .result,.empty { padding:20px; } .email-dialog-head { padding:22px 20px 0; }
+ .email-dialog form { padding:20px; } .email-content { padding:14px; }
+ footer { margin-top:40px; }
+}

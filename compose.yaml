@@ -12,6 +12,12 @@ services:
       KINDE_CLIENT_SECRET: ${KINDE_CLIENT_SECRET:-}
       KINDE_AUDIENCE: ${KINDE_AUDIENCE:-youtube-transcriber}
       APP_URL: ${DOCKER_APP_URL:-http://127.0.0.1:8001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
     restart: unless-stopped
 volumes:
   transcriber-data:

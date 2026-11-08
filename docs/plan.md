@@ -14,6 +14,15 @@ Python caption provider normalizes timestamped segments and metadata. The initia
 - [x] Milestone 3: Cache expiry, worker recovery, bounded retries, timeout handling, clear missing-language/access/provider errors. Exercise failure paths.
 - [x] Milestone 4: Choose audio acquisition and STT provider with the user; support uploads when URL acquisition fails. Limit duration, chunk audio, verify boundaries and delete temporary files.
 - [x] Milestone 5: Containers, configuration and structured logging. Smoke-test the deployment host.
+- [x] Approved follow-up: Intelligence Studio branding and transcript/insight email. Reuse the supplied brain/play artwork as the app mark and favicon; add configurable SMTP delivery of transcript text and optional generated insights; document setup and ensure generated insights remain ephemeral. Implementation and deterministic verification are complete; see [branding and email implementation plan](branding-email-plan.md).
+
+## Approved branding and account email scope (2026-11-08)
+
+- Brand the product as **Intelligence Studio** and reuse the supplied circular brain/play artwork without inventing a replacement mark. Provide transparent app-logo and favicon assets and show the app logo in the README.
+- Configure transcript/insight email delivery through SMTP using `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, and `SMTP_SECURITY`. Compose forwards these values; credentials remain in local deployment configuration.
+- Keep generated insights ephemeral in page memory; do not persist insight outputs in the database.
+- Verification (2026-11-08): `.venv/bin/python -m pytest` passes 97 tests; `npm test --prefix frontend` passes 13 tests; `npm run build --prefix frontend`, `docker compose config --quiet`, and `git diff --check` pass. Independent security review found no blocking issues. README logo link resolves; mark is a transparent 1262×1246 PNG and favicon a transparent 252×252 square PNG.
+- Browser check: the local Vite page rendered the Intelligence Studio logo and dark landing page, but its session check failed without an authenticated backend session. Browser automation could not dispatch the theme-toggle click, so live light-theme, responsive, and email-dialog rendering were not verified; component tests cover email modes and error handling. No live SMTP message was sent. Successful live SMTP delivery remains unverified. Keep deployment invite-only/trusted until email rate/concurrency limits are added.
 
 ## Milestone 1 file map and checks
 

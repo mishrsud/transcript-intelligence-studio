@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and serve Transcript Studio locally, then open the default browser."""
+"""Build and serve Intelligence Studio locally, then open the default browser."""
 import argparse
 import os
 from pathlib import Path
@@ -81,7 +81,7 @@ def main(argv=None):
                 time.sleep(.2)
         else:
             raise RuntimeError('The app did not become ready within 30 seconds.')
-        print(f'\nTranscript Studio is ready: {url}\nPress Ctrl+C to stop.\n', flush=True)
+        print(f'\nIntelligence Studio is ready: {url}\nPress Ctrl+C to stop.\n', flush=True)
         if not args.no_browser:
             try:
                 if not webbrowser.open(url):
@@ -90,7 +90,7 @@ def main(argv=None):
                 print('Could not open the browser; open the URL above manually.', flush=True)
         return process.wait()
     except KeyboardInterrupt:
-        print('\nStopping Transcript Studio…', flush=True)
+        print('\nStopping Intelligence Studio…', flush=True)
         return 0
     finally:
         signal.signal(signal.SIGTERM, old_term)
